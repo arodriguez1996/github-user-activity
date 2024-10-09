@@ -1,16 +1,41 @@
 #!/usr/bin/env node
 import 'dotenv/config'
-// import { get } from 'axios';
 
 const [_, __, username] = process.argv;
 
-console.log(process.env.GITHUB_KEY);
+const ghEvents = {
+    'PushEvent': 'pushed to',
+    'CreateEvent': 'created',
+    'WatchEvent': 'starred',
+    'ForkEvent': 'forked',
+    'IssuesEvent': 'opened an issue',
+    'PullRequestEvent': 'opened a pull request',
+    'DeleteEvent': 'deleted',
+};
 
-
-if (!username) {
-    console.log('Please provide a username');
+const colors = {
+    red: "\x1b[31m",
+    yellow: "\x1b[33m",
+    green: "\x1b[32m",
 }
 
-// get(`https://api.github.com/users/arodriguez1996/events`).then(({ data }))
+if (!username) {
+    console.log(colors.red, 'Please provide a username');
+    process.exit(1);
+}
 
-console.log('bichus palus' + username);
+const MapEvent = new Map();
+
+fetch(`https://api.github.com/users/${username}/events`).then((res) => {
+    if (!res.ok) {
+        console.log(colors.red, 'User not found');
+        process.exit(1);
+    }
+    res.json().then((data) => {
+        data.forEach(event => {
+            if (event.type === 'PushEvent') {
+                console.log(event.payload.commits);
+            }
+        });
+    });
+}).catch((err) => { console.error(err) });
