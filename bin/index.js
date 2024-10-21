@@ -4,13 +4,9 @@ import 'dotenv/config'
 const [_, __, username] = process.argv;
 
 const ghEvents = {
-    'PushEvent': 'pushed to',
-    'CreateEvent': 'created',
-    'WatchEvent': 'starred',
-    'ForkEvent': 'forked',
-    'IssuesEvent': 'opened an issue',
-    'PullRequestEvent': 'opened a pull request',
-    'DeleteEvent': 'deleted',
+    'PushEvent': (event) => `Pushed ${event.payload.size} commits to ${event.repo.name}`,
+    'WatchEvent': (event) => `Starred ${event.repo.name}`,
+    'IssuesEvent': (event) => `${event.payload.action.charAt(0).toUpperCase() + event.payload.action.slice(1)} an issue in ${event.repo.name}`,
 };
 
 const colors = {
@@ -24,18 +20,21 @@ if (!username) {
     process.exit(1);
 }
 
-const MapEvent = new Map();
-
 fetch(`https://api.github.com/users/${username}/events`).then((res) => {
     if (!res.ok) {
-        console.log(colors.red, 'User not found');
+        console.log(colors.red, 'Unexpected error');
         process.exit(1);
     }
     res.json().then((data) => {
+        if (data.length === 0) {
+            console.log(colors.yellow, 'No events found');
+            process.exit(1);
+        }
         data.forEach(event => {
-            if (event.type === 'PushEvent') {
-                console.log(event.payload.commits);
+            if (event.type in ghEvents) {
+                console.log(colors.green, `- ${ghEvents[event.type](event)}`);
             }
         });
     });
-}).catch((err) => { console.error(err) });
+})
+    .catch((err) => { console.error(colors.red, err) });
